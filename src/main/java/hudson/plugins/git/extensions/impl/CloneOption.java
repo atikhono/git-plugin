@@ -1,5 +1,6 @@
 package hudson.plugins.git.extensions.impl;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -141,6 +142,15 @@ public class CloneOption extends GitSCMExtension {
         }
         cmd.timeout(timeout);
         cmd.reference(build.getEnvironment(listener).expand(reference));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void decorateCloneCommand(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener, CloneCommand cmd, EnvVars env) throws IOException, InterruptedException, GitException {
+        decorateCloneCommand(scm, build, git, listener, cmd);
+        cmd.reference(env.expand(reference));
     }
 
     /**

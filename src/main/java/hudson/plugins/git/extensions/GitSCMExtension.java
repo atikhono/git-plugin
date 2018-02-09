@@ -250,8 +250,33 @@ public abstract class GitSCMExtension extends AbstractDescribableImpl<GitSCMExte
         }
     }
 
+    /**
+     * Called before a {@link CloneCommand} is executed to allow extensions to alter its behaviour.
+     * @param scm GitSCM object
+     * @param build run context
+     * @param git GitClient
+     * @param listener build log
+     * @param cmd clone command to be decorated
+     * @param env environment to expand clone options
+     * @throws IOException on input or output error
+     * @throws InterruptedException when interrupted
+     * @throws GitException on git error
+     */
+    public void decorateCloneCommand(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener, CloneCommand cmd, EnvVars env) throws IOException, InterruptedException, GitException {
+        if (build instanceof AbstractBuild && listener instanceof BuildListener) {
+            decorateCloneCommand(scm, (AbstractBuild) build, git, (BuildListener) listener, cmd, env);
+        }
+    }
+
     @Deprecated
     public void decorateCloneCommand(GitSCM scm, AbstractBuild<?, ?> build, GitClient git, BuildListener listener, CloneCommand cmd) throws IOException, InterruptedException, GitException {
+        if (Util.isOverridden(GitSCMExtension.class, getClass(), "decorateCloneCommand", GitSCM.class, Run.class, GitClient.class, TaskListener.class, CloneCommand.class)) {
+            decorateCloneCommand(scm, (Run) build, git, listener, cmd);
+        }
+    }
+
+    @Deprecated
+    public void decorateCloneCommand(GitSCM scm, AbstractBuild<?, ?> build, GitClient git, BuildListener listener, CloneCommand cmd, EnvVars env) throws IOException, InterruptedException, GitException {
         if (Util.isOverridden(GitSCMExtension.class, getClass(), "decorateCloneCommand", GitSCM.class, Run.class, GitClient.class, TaskListener.class, CloneCommand.class)) {
             decorateCloneCommand(scm, (Run) build, git, listener, cmd);
         }

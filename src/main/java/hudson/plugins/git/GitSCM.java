@@ -37,6 +37,7 @@ import hudson.plugins.git.util.*;
 import hudson.remoting.Channel;
 import hudson.scm.*;
 import hudson.security.ACL;
+import hudson.slaves.NodeProperty;
 import hudson.tasks.Builder;
 import hudson.tasks.Publisher;
 import hudson.triggers.SCMTrigger;
@@ -1059,7 +1060,7 @@ public class GitSCM extends GitSCMBackwardCompatibility {
      *
      * By the end of this method, remote refs are updated to include all the commits found in the remote servers.
      */
-    private void retrieveChanges(Run build, GitClient git, TaskListener listener) throws IOException, InterruptedException {
+    private void retrieveChanges(Run build, GitClient git, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
         final PrintStream log = listener.getLogger();
 
         List<RemoteConfig> repos = getParamExpandedRepos(build, listener);
@@ -1078,7 +1079,7 @@ public class GitSCM extends GitSCMBackwardCompatibility {
             try {
                 CloneCommand cmd = git.clone_().url(rc.getURIs().get(0).toPrivateString()).repositoryName(rc.getName());
                 for (GitSCMExtension ext : extensions) {
-                    ext.decorateCloneCommand(this, build, git, listener, cmd);
+                    ext.decorateCloneCommand(this, build, git, listener, cmd, env);
                 }
                 cmd.execute();
             } catch (GitException ex) {
@@ -1114,13 +1115,18 @@ public class GitSCM extends GitSCMBackwardCompatibility {
         }
 
         EnvVars environment = build.getEnvironment(listener);
+
+        for (NodeProperty nodeProperty: GitUtils.workspaceToNode(workspace).getNodeProperties()) {
+            nodeProperty.buildEnvVars(environment, listener);
+        }
+
         GitClient git = createClient(listener, environment, build, workspace);
 
         for (GitSCMExtension ext : extensions) {
             ext.beforeCheckout(this, build, git, listener);
         }
 
-        retrieveChanges(build, git, listener);
+        retrieveChanges(build, git, listener, environment);
         Build revToBuild = determineRevisionToBuild(build, buildData, environment, git, listener);
 
         // Track whether we're trying to add a duplicate BuildData, now that it's been updated with
